@@ -2,7 +2,7 @@
 
 > Hardware compatibility checker and driver advisor for Linux.
 
-Scans every PCI and USB device on your system, checks driver status, rfkill blocks, firmware update availability, SMART disk health, and battery condition — then gives you **exact fix commands** and an interactive prompt to apply them. Note: **It is still a work in progress**
+Scans every PCI and USB device on your system, checks driver status, rfkill blocks, firmware update availability, SMART disk health, and battery condition — then gives you **exact fix commands** and an interactive prompt to apply them. Note: ⚠️ Work in progress — stability and hardware coverage are actively improving
 
 **No pip packages required.** Pure Python stdlib + standard Linux system tools.
 
@@ -57,17 +57,24 @@ Scans every PCI and USB device on your system, checks driver status, rfkill bloc
 - **Web GUI** — live dashboard with real-time CPU, RAM, temperature, fan, disk I/O, and network monitoring
 - **JSON output** — `--json` flag for scripting or integration
 - **Distro-aware** — full auto-install on Ubuntu/Debian; detection-only on Fedora, Arch, openSUSE
+- **Single-instance server** — prevents multiple processes and port conflicts
+- **Auto shutdown on tab close** — server exits when the GUI is no longer active
 
 ---
 
 ## Quick Start
 
 ```bash
-git clone https://github.com/yourusername/hardware-compat.git
+git clone https://github.com/rajkumart5897/hardware-compat.git
 cd hardware-compat
 chmod +x install.sh
 ./install.sh
 ```
+
+The installer will:
+- install required system tools
+- add `hardware-compat` to PATH
+- create a desktop launcher
 
 After install, from anywhere:
 
@@ -86,6 +93,15 @@ chmod +x run.sh
 ./run.sh            # CLI
 ./run.sh --gui      # Web GUI at http://localhost:7474
 ```
+
+---
+
+## Security Note
+
+Certain hardware checks (SMART, BIOS info) require sudo access.
+`hardware-compat` uses limited `sudo` access for read-only hardware inspection tools (`smartctl`, `dmidecode`).  
+These are restricted to specific commands and do not allow arbitrary privilege escalation.
+The installer configures safe, limited passwordless access for these tools.
 
 ---
 
@@ -243,4 +259,13 @@ Key options:
 - Linux (developed and tested on Ubuntu 24.04)
 - No pip packages
 
+
+## Development
+
+Create a `.gitignore` to avoid committing cache files:
+
+```bash
+echo "__pycache__/" >> .gitignore
+echo "*.pyc" >> .gitignore
+```
 
