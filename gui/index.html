@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hardware Compat</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f5f0;--surf:#fff;--surf2:#f0efe9;--surf3:#e8e7e0;
+  --border:rgba(0,0,0,.09);--border2:rgba(0,0,0,.16);
+  --text:#1a1a18;--text2:#5a5a56;--text3:#9a9a94;
+  --mono:'SFMono-Regular',Consolas,'Liberation Mono',monospace;
+  --green:#1D9E75;--green-bg:#e1f5ee;--green-t:#085041;
+  --amber:#BA7517;--amber-bg:#faeeda;--amber-t:#633806;
+  --red:#A32D2D;--red-bg:#fcebeb;--red-t:#501313;
+  --blue:#185FA5;--blue-bg:#e6f1fb;--blue-t:#042C53;
+  --purple:#534AB7;--purple-bg:#EEEDFE;--purple-t:#26215C;
+  --r:10px;--rs:6px
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1a1a18;--surf:#242421;--surf2:#2c2c2a;--surf3:#363633;
+  --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.15);
+  --text:#ebebde;--text2:#a0a09a;--text3:#606058;
+  --green:#1D9E75;--green-bg:#04342C;--green-t:#9FE1CB;
+  --amber:#EF9F27;--amber-bg:#412402;--amber-t:#FAC775;
+  --red:#E24B4A;--red-bg:#501313;--red-t:#F7C1C1;
+  --blue:#378ADD;--blue-bg:#042C53;--blue-t:#B5D4F4;
+  --purple:#7F77DD;--purple-bg:#26215C;--purple-t:#CECBF6;
+}}
+html{font-size:15px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6}
+.app{max-width:1000px;margin:0 auto;padding:1.75rem 1.25rem 4rem}
+
+/* topbar */
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:10px}
+.topbar h1{font-size:19px;font-weight:600}
+.topbar-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.scan-btn{font-size:13px;padding:6px 14px;border-radius:99px;background:var(--text);color:var(--bg);border:none;cursor:pointer;font-weight:500;transition:opacity .15s}
+.scan-btn:hover{opacity:.82}
+.scan-btn:disabled{opacity:.4;cursor:not-allowed}
+.stamp{font-size:12px;color:var(--text3)}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-right:5px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* distro bar */
+.distro-bar{background:var(--surf);border:0.5px solid var(--border);border-radius:var(--r);padding:.875rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.distro-name{font-size:15px;font-weight:500}
+.distro-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.tier-badge{font-size:11px;font-weight:600;padding:3px 11px;border-radius:99px;white-space:nowrap}
+.tier-FULL{background:var(--green-bg);color:var(--green-t)}
+.tier-PARTIAL{background:var(--amber-bg);color:var(--amber-t)}
+.tier-UNSUPPORTED{background:var(--red-bg);color:var(--red-t)}
+
+/* alert banner */
+.alert-bar{background:var(--red-bg);border:0.5px solid var(--red);border-radius:var(--rs);padding:.6rem 1rem;margin-bottom:1rem;font-size:13px;color:var(--red-t);display:none}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:1.5rem}
+.stat{background:var(--surf);border:0.5px solid var(--border);border-radius:var(--rs);padding:.75rem 1rem}
+.stat-lbl{font-size:11px;color:var(--text2);margin-bottom:3px}
+.stat-val{font-size:22px;font-weight:600;color:var(--text)}
+.stat-val.g{color:var(--green)}.stat-val.a{color:var(--amber)}.stat-val.r{color:var(--red)}
+
+/* tabs */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:1.25rem;flex-wrap:wrap}
+.tab{font-size:13px;font-weight:500;padding:7px 14px;border-radius:var(--rs) var(--rs) 0 0;cursor:pointer;color:var(--text2);border:0.5px solid transparent;background:transparent;border-bottom:none;transition:color .12s,background .12s;white-space:nowrap}
+.tab:hover{color:var(--text)}
+.tab.active{background:var(--surf);border-color:var(--border);border-bottom-color:var(--surf);color:var(--text);margin-bottom:-1px}
+.tbadge{display:inline-block;margin-left:4px;font-size:10px;font-weight:700;padding:1px 5px;border-radius:99px;background:var(--red-bg);color:var(--red-t);vertical-align:middle}
+.panel{display:none}.panel.active{display:block}
+
+/* chips */
+.chips{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap}
+.chip{font-size:12px;padding:3px 11px;border-radius:99px;cursor:pointer;border:0.5px solid var(--border2);background:var(--surf);color:var(--text2);transition:background .1s,color .1s}
+.chip.on{background:var(--text);color:var(--bg);border-color:transparent}
+
+/* device grid */
+.dev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.dev{background:var(--surf);border:0.5px solid var(--border);border-radius:var(--r);padding:.875rem 1rem}
+.dev.iss{border-left:2.5px solid var(--red)}.dev.wrn{border-left:2.5px solid var(--amber)}
+.dev-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px}
+.dev-name{font-size:13px;font-weight:500;line-height:1.4;flex:1}
+.spill{font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;white-space:nowrap;flex-shrink:0}
+.s-OPTIMAL{background:var(--green-bg);color:var(--green-t)}
+.s-SUBOPTIMAL{background:var(--amber-bg);color:var(--amber-t)}
+.s-MISSING{background:var(--red-bg);color:var(--red-t)}
+.s-BLOCKED{background:var(--red-bg);color:var(--red-t)}
+.s-UNKNOWN{background:var(--surf2);color:var(--text3)}
+.dev-drv{font-size:11.5px;color:var(--text2);margin-top:2px}
+.dev-tags{margin-top:7px;display:flex;gap:4px;flex-wrap:wrap}
+.tag{font-size:10px;padding:1px 7px;border-radius:99px;background:var(--surf2);color:var(--text3)}
+.tag.fw{background:var(--amber-bg);color:var(--amber-t)}.tag.blk{background:var(--red-bg);color:var(--red-t)}
+
+/* rec list */
+.rec-list{display:flex;flex-direction:column;gap:10px}
+.rec{background:var(--surf);border:0.5px solid var(--border);border-radius:var(--r);padding:1rem 1.25rem}
+.rec.sH{border-left:3px solid var(--red)}.rec.sM{border-left:3px solid var(--amber)}.rec.sL{border-left:3px solid var(--border2)}
+.rec-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.rec-title{font-size:14px;font-weight:600}
+.sevb{font-size:10px;font-weight:600;padding:2px 9px;border-radius:99px}
+.sevb.H{background:var(--red-bg);color:var(--red-t)}.sevb.M{background:var(--amber-bg);color:var(--amber-t)}.sevb.L{background:var(--surf2);color:var(--text3)}
+.rec-issue{font-size:13px;color:var(--text2);margin-bottom:.75rem;line-height:1.55}
+.steps{display:flex;flex-direction:column;gap:6px}
+.step{background:var(--surf2);border-radius:var(--rs);padding:.5rem .75rem}
+.step-d{font-size:12px;color:var(--text2);margin-bottom:3px}
+.cmd-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cmd{font-family:var(--mono);font-size:11px;color:var(--text);background:var(--bg);border:0.5px solid var(--border2);border-radius:4px;padding:3px 7px;word-break:break-all;flex:1}
+.cpbtn{font-size:11px;padding:3px 9px;border-radius:99px;border:0.5px solid var(--border2);background:var(--surf);color:var(--text2);cursor:pointer;white-space:nowrap;flex-shrink:0}
+.cpbtn:hover{background:var(--surf2)}.cpbtn.ok{color:var(--green);border-color:var(--green)}
+.rec-foot{margin-top:7px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.reboot-tag{font-size:11.5px;color:var(--amber)}
+.docs-lnk{font-size:12px;color:var(--blue);text-decoration:none}
+.docs-lnk:hover{text-decoration:underline}
+
+/* live monitor */
+.monitor-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.mcard{background:var(--surf);border:0.5px solid var(--border);border-radius:var(--r);padding:1rem 1.25rem}
+.mcard-title{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.875rem}
+.big-metric{font-size:28px;font-weight:600;color:var(--text);margin-bottom:4px}
+.bar-bg{height:8px;border-radius:99px;background:var(--surf2);overflow:hidden;margin:4px 0 8px}
+.bar-fill{height:100%;border-radius:99px;transition:width .6s}
+.bar-fill.g{background:var(--green)}.bar-fill.a{background:var(--amber)}.bar-fill.r{background:var(--red)}
+.core-row{display:flex;flex-direction:column;gap:4px}
+.core-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)}
+.core-bar{flex:1;height:5px;border-radius:99px;background:var(--surf2);overflow:hidden}
+.core-bar-fill{height:100%;border-radius:99px;background:var(--green);transition:width .6s}
+.temp-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.temp-item{background:var(--surf2);border-radius:var(--rs);padding:.4rem .6rem;font-size:12px}
+.temp-val{font-size:16px;font-weight:600;margin-top:2px}
+.temp-val.g{color:var(--green)}.temp-val.a{color:var(--amber)}.temp-val.r{color:var(--red)}
+.net-row{display:flex;flex-direction:column;gap:8px}
+.net-item{background:var(--surf2);border-radius:var(--rs);padding:.5rem .75rem}
+.net-name{font-size:12px;font-weight:500;display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.net-state{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0}
+.net-state.up{background:var(--green)}.net-state.down{background:var(--red)}.net-state.unknown{background:var(--text3)}
+.net-speeds{display:flex;gap:12px;font-size:11.5px;color:var(--text2)}
+.sparkline{width:100%;height:40px;display:block;margin-top:6px}
+
+/* disk / SMART */
+.smart-list{display:flex;flex-direction:column;gap:10px}
+.smart-card{background:var(--surf);border:0.5px solid var(--border);border-radius:var(--r);padding:1rem 1.25rem}
+.smart-card.ok{}
+.smart-card.warn{border-left:3px solid var(--amber)}
+.smart-card.fail{border-left:3px solid var(--red)}
+.smart-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:.625rem}
+.smart-model{font-size:14px;font-weight:500}
+.smart-badge{font-size:10px;font-weight:600;padding:2px 9px;border-radius:99px}
+.smart-badge.PASSED{background:var(--green-bg);color:var(--green-t)}
+.smart-badge.FAILED{background:var(--red-bg);color:var(--red-t)}
+.smart-badge.UNKNOWN{background:var(--surf2);color:var(--text3)}
+.smart-attrs{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:.75rem}
+.smart-attr{background:var(--surf2);border-radius:var(--rs);padding:.4rem .6rem;font-size:12px}
+.smart-attr-val{font-size:15px;font-weight:600;margin-top:2px}
+.smart-issues{margin-top:.6rem;display:flex;flex-direction:column;gap:4px}
+.smart-issue{font-size:12px;color:var(--red-t);background:var(--red-bg);border-radius:4px;padding:3px 8px}
+
+/* kernel/boot */
+.kinfo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.kstat{background:var(--surf);border:0.5px solid var(--border);border-radius:var(--rs);padding:.75rem 1rem}
+.kstat-lbl{font-size:11px;color:var(--text2);margin-bottom:3px}
+.kstat-val{font-size:14px;font-weight:500;color:var(--text)}
+.dmesg-box{margin-top:1rem;background:var(--surf2);border-radius:var(--rs);padding:.75rem 1rem;max-height:200px;overflow-y:auto}
+.dmesg-lbl{font-size:11px;font-weight:600;color:var(--text3);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.05em}
+.dmesg-line{font-family:var(--mono);font-size:11px;color:var(--amber-t);line-height:1.6}
+.dmesg-ok{font-size:12px;color:var(--green);font-family:var(--mono)}
+
+/* network panel */
+.net-panel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.net-card{background:var(--surf);border:0.5px solid var(--border);border-radius:var(--r);padding:1rem 1.25rem}
+.net-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem}
+.iface-name{font-size:15px;font-weight:500}
+.iface-badge{font-size:11px;padding:2px 9px;border-radius:99px}
+.iface-up{background:var(--green-bg);color:var(--green-t)}
+.iface-down{background:var(--red-bg);color:var(--red-t)}
+.iface-unknown{background:var(--surf2);color:var(--text3)}
+.iface-attrs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.75rem}
+.iface-attr{background:var(--surf2);border-radius:var(--rs);padding:.4rem .6rem;font-size:12px;color:var(--text2)}
+.iface-attr-val{font-size:14px;font-weight:500;color:var(--text);margin-top:2px}
+
+/* settings */
+.settings-layout{display:flex;flex-direction:column;gap:1.5rem}
+.settings-group{background:var(--surf);border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden}
+.settings-group-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:.75rem 1.25rem;background:var(--surf2);border-bottom:0.5px solid var(--border)}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:.875rem 1.25rem;border-bottom:0.5px solid var(--border);gap:1rem;flex-wrap:wrap}
+.settings-row:last-child{border-bottom:none}
+.settings-row-left{flex:1;min-width:180px}
+.settings-row-label{font-size:14px;font-weight:500;color:var(--text)}
+.settings-row-desc{font-size:12px;color:var(--text2);margin-top:2px}
+.settings-control{flex-shrink:0}
+select,input[type=number],input[type=text]{
+  font-size:13px;padding:5px 10px;border-radius:var(--rs);
+  border:0.5px solid var(--border2);background:var(--surf2);
+  color:var(--text);outline:none;
+}
+select:focus,input:focus{border-color:var(--blue)}
+.toggle{position:relative;width:42px;height:24px;cursor:pointer}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle-track{position:absolute;inset:0;border-radius:99px;background:var(--surf3);transition:background .2s}
+.toggle input:checked + .toggle-track{background:var(--green)}
+.toggle-thumb{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s;pointer-events:none}
+.toggle input:checked ~ .toggle-thumb{transform:translateX(18px)}
+.save-btn{display:block;width:100%;margin-top:1rem;padding:.75rem;border-radius:var(--rs);border:none;background:var(--text);color:var(--bg);font-size:14px;font-weight:500;cursor:pointer;transition:opacity .15s}
+.save-btn:hover{opacity:.82}
+.save-confirm{font-size:13px;color:var(--green);text-align:center;margin-top:.5rem;display:none}
+
+/* system info */
+.sys-section{margin-bottom:1.5rem}
+.sys-lbl{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem}
+.bat-card{background:var(--surf);border:0.5px solid var(--border);border-radius:var(--rs);padding:.75rem 1rem;max-width:360px}
+.bat-lbl{font-size:12px;color:var(--text2)}
+.bat-val{font-size:18px;font-weight:500;margin:4px 0}
+
+/* loading & error */
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4rem 1rem;gap:1rem}
+.spinner{width:30px;height:30px;border-radius:50%;border:3px solid var(--border2);border-top-color:var(--text);animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-msg{font-size:13px;color:var(--text2)}
+.err-box{background:var(--red-bg);border-radius:var(--r);padding:1.25rem 1.5rem;color:var(--red-t)}
+.err-box h3{font-size:15px;margin-bottom:6px}
+.err-box pre{font-family:var(--mono);font-size:12px;white-space:pre-wrap;word-break:break-all;opacity:.85;margin-top:6px}
+.empty{font-size:13px;color:var(--text2);text-align:center;padding:2.5rem 0}
+.section-lbl{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin:1.25rem 0 .75rem}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <h1>Hardware Compat</h1>
+    <div class="topbar-r">
+      <span class="live-dot" id="live-dot" style="display:none"></span>
+      <span class="stamp" id="stamp"></span>
+      <button class="scan-btn" id="scan-btn" onclick="runScan()">Scan now</button>
+    </div>
+  </div>
+
+  <div class="alert-bar" id="alert-bar"></div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div class="load-msg" id="load-msg">Scanning hardware…</div>
+  </div>
+
+  <div id="main" style="display:none">
+    <div class="distro-bar">
+      <div>
+        <div class="distro-name" id="d-name">—</div>
+        <div class="distro-sub"  id="d-sub">—</div>
+      </div>
+      <span class="tier-badge" id="d-tier">—</span>
+    </div>
+
+    <div class="stats" id="stats-row"></div>
+
+    <div class="tabs" id="tabs">
+      <button class="tab active" onclick="tab('overview',this)">Overview</button>
+      <button class="tab" onclick="tab('devices',this)">Devices</button>
+      <button class="tab" onclick="tab('monitor',this)">Live Monitor</button>
+      <button class="tab" onclick="tab('network',this)">Network</button>
+      <button class="tab" onclick="tab('disk',this)">Disk Health</button>
+      <button class="tab" onclick="tab('kernel',this)">Kernel & Boot</button>
+      <button class="tab" onclick="tab('recs',this)">Recommendations <span class="tbadge" id="rec-badge" style="display:none"></span></button>
+      <button class="tab" onclick="tab('system',this)">System Info</button>
+      <button class="tab" onclick="tab('settings',this)">Settings</button>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div class="panel active" id="tab-overview">
+      <div id="overview-content"></div>
+    </div>
+
+    <!-- DEVICES -->
+    <div class="panel" id="tab-devices">
+      <div class="chips" id="cat-chips"></div>
+      <div class="dev-grid" id="dev-grid"></div>
+    </div>
+
+    <!-- LIVE MONITOR -->
+    <div class="panel" id="tab-monitor">
+      <div class="monitor-grid" id="monitor-grid">
+        <p class="empty">Loading live metrics…</p>
+      </div>
+    </div>
+
+    <!-- NETWORK -->
+    <div class="panel" id="tab-network">
+      <div class="net-panel-grid" id="net-panel"></div>
+    </div>
+
+    <!-- DISK HEALTH -->
+    <div class="panel" id="tab-disk">
+      <div class="smart-list" id="smart-list">
+        <p class="empty">Loading disk health…</p>
+      </div>
+    </div>
+
+    <!-- KERNEL & BOOT -->
+    <div class="panel" id="tab-kernel">
+      <div id="kernel-content"></div>
+    </div>
+
+    <!-- RECOMMENDATIONS -->
+    <div class="panel" id="tab-recs">
+      <div class="rec-list" id="rec-list"></div>
+    </div>
+
+    <!-- SYSTEM INFO -->
+    <div class="panel" id="tab-system">
+      <div id="sys-content"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="panel" id="tab-settings">
+      <div class="settings-layout" id="settings-form"></div>
+      <button class="save-btn" onclick="saveSettings()">Save settings</button>
+      <div class="save-confirm" id="save-confirm">Settings saved.</div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let scanData = null;
+let cfg = {};
+let monitorTimer = null;
+let devFilter = "ALL";
+// Sparkline history
+const cpuHistory = [];
+const ramHistory = [];
+const MAX_HIST = 30;
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const esc = s => s == null ? "" : String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const clr = (v, lo, hi) => v >= hi ? "r" : v >= lo ? "a" : "g";
+const fmt_bytes = b => b == null ? "—" : b > 1e12 ? (b/1e12).toFixed(1)+" TB" : b > 1e9 ? (b/1e9).toFixed(1)+" GB" : (b/1e6).toFixed(0)+" MB";
+const fmt_speed = kbps => kbps > 10240 ? (kbps/1024).toFixed(1)+" MB/s" : kbps.toFixed(0)+" KB/s";
+function tempColor(c){ return c >= 85 ? "r" : c >= 65 ? "a" : "g"; }
+
+// ── Boot ──────────────────────────────────────────────────────────────────
+(async function boot(){
+  cfg = await fetch("/api/config").then(r=>r.json()).catch(()=>({}));
+  renderSettings(cfg);
+  runScan();
+})();
+
+// ── Scan ──────────────────────────────────────────────────────────────────
+async function runScan(){
+  const btn = $("scan-btn");
+  btn.disabled = true; btn.textContent = "Scanning…";
+  $("loading").style.display = "flex";
+  $("main").style.display = "none";
+  $("alert-bar").style.display = "none";
+
+  const msgs = ["Scanning hardware…","Querying PCI and USB buses…","Checking drivers and rfkill…","Building recommendations…"];
+  let mi = 0;
+  $("load-msg").textContent = msgs[0];
+  const ticker = setInterval(()=>{ $("load-msg").textContent = msgs[++mi % msgs.length]; }, 1800);
+
+  try {
+    const data = await fetch("/api/scan").then(r=>r.json());
+    clearInterval(ticker);
+    if(data.error){ showError(data.error); return; }
+    scanData = data;
+    renderAll(data);
+    $("loading").style.display = "none";
+    $("main").style.display = "block";
+    $("stamp").textContent = "Scanned " + new Date().toLocaleTimeString();
+    startMonitor();
+    loadSmart();
+  } catch(e){
+    clearInterval(ticker);
+    showError("Server not reachable.\n"+e.message);
+  }
+  btn.disabled = false; btn.textContent = "Scan now";
+}
+
+function showError(msg){
+  const l = $("loading");
+  l.innerHTML = `<div class="err-box"><h3>Scan failed</h3><pre>${esc(msg)}</pre>
+    <button class="scan-btn" style="margin-top:12px" onclick="location.reload()">Retry</button></div>`;
+  l.style.display = "flex";
+}
+
+// ── Render all ─────────────────────────────────────────────────────────────
+function renderAll(d){
+  renderDistro(d.distro, d.bios);
+  renderStats(d.devices, d.battery, d.recommendations);
+  renderChips(d.devices);
+  renderDevices(d.devices, "ALL");
+  renderRecs(d.recommendations);
+  renderSysInfo(d);
+  renderOverview(d);
+}
+
+function renderDistro(dist, bios){
+  $("d-name").textContent = dist.name + (dist.version ? " " + dist.version : "");
+  const parts = [];
+  if(bios && bios.version) parts.push("BIOS " + bios.version);
+  if(bios && bios.date)    parts.push(bios.date);
+  $("d-sub").textContent = parts.join("  ·  ") || "—";
+  const b = $("d-tier");
+  const labels = {FULL:"Full support",PARTIAL:"Partial support",UNSUPPORTED:"Unsupported"};
+  b.textContent = labels[dist.tier] || dist.tier;
+  b.className = "tier-badge tier-" + dist.tier;
+}
+
+function renderStats(devs, bat, recs){
+  const total   = devs.length;
+  const optimal = devs.filter(d=>d.status==="OPTIMAL").length;
+  const issues  = total - optimal;
+  const high    = recs.filter(r=>r.severity==="HIGH").length;
+  let batHtml = "—"; let batCls = "";
+  if(bat && bat.health_pct != null){
+    const h = bat.health_pct;
+    batHtml = h.toFixed(1)+"%";
+    batCls = h >= 80 ? "g" : h >= 60 ? "a" : "r";
+  }
+  $("stats-row").innerHTML = `
+    <div class="stat"><div class="stat-lbl">Devices</div><div class="stat-val">${total}</div></div>
+    <div class="stat"><div class="stat-lbl">Optimal</div><div class="stat-val g">${optimal}</div></div>
+    <div class="stat"><div class="stat-lbl">Issues</div><div class="stat-val ${issues?'r':''}">${issues}</div></div>
+    <div class="stat"><div class="stat-lbl">HIGH alerts</div><div class="stat-val ${high?'r':''}">${high}</div></div>
+    <div class="stat"><div class="stat-lbl">Battery health</div><div class="stat-val ${batCls}">${batHtml}</div></div>
+  `;
+  if(high > 0){
+    const b = $("rec-badge");
+    b.textContent = high; b.style.display = "";
+  }
+}
+
+// ── Overview ──────────────────────────────────────────────────────────────
+function renderOverview(d){
+  const recs = d.recommendations || [];
+  const high = recs.filter(r=>r.severity==="HIGH");
+  const med  = recs.filter(r=>r.severity==="MEDIUM");
+
+  let alertHtml = "";
+  if(high.length){
+    const bar = $("alert-bar");
+    bar.style.display = "";
+    bar.textContent = `${high.length} HIGH severity issue(s) found — check Recommendations tab.`;
+  }
+
+  const recSummary = recs.length === 0
+    ? `<div style="color:var(--green);font-size:13px">✓ No issues — all hardware is working correctly.</div>`
+    : recs.slice(0,3).map(r=>`
+      <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:13px">
+        <span class="sevb ${r.severity[0]}">${r.severity}</span>
+        <span style="color:var(--text2)">${esc(r.device.name)} — ${esc(r.issue.slice(0,80))}${r.issue.length>80?"…":""}</span>
+      </div>`).join("")
+    + (recs.length>3 ? `<div style="font-size:12px;color:var(--text3);margin-top:4px">+${recs.length-3} more — see Recommendations tab</div>` : "");
+
+  $("overview-content").innerHTML = `
+    <div class="monitor-grid" style="margin-bottom:1.25rem">
+      <div class="mcard">
+        <div class="mcard-title">Recent recommendations</div>
+        ${recSummary}
+      </div>
+      <div class="mcard">
+        <div class="mcard-title">Device summary</div>
+        ${["GPU","WIFI","ETHERNET","AUDIO","BLUETOOTH","WEBCAM","STORAGE"].map(cat=>{
+          const devs = d.devices.filter(dv=>dv.category===cat);
+          if(!devs.length) return "";
+          const ok = devs.every(dv=>dv.status==="OPTIMAL");
+          return `<div style="display:flex;align-items:center;justify-content:space-between;font-size:13px;margin-bottom:5px">
+            <span style="color:var(--text2)">${cat}</span>
+            <span style="color:var(--${ok?"green":"red"})">${ok?"✓ OK":"⚠ Issue"}</span>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>
+    <div id="overview-monitor-placeholder"></div>
+  `;
+}
+
+// ── Chips & Devices ────────────────────────────────────────────────────────
+function renderChips(devs){
+  const cats = ["ALL",...new Set(devs.map(d=>d.category))];
+  $("cat-chips").innerHTML = cats.map(c=>
+    `<button class="chip${c==="ALL"?" on":""}" onclick="setFilter('${c}',this)">${c}</button>`
+  ).join("");
+}
+
+function setFilter(cat, btn){
+  devFilter = cat;
+  document.querySelectorAll(".chip").forEach(b=>b.classList.remove("on"));
+  btn.classList.add("on");
+  renderDevices(scanData.devices, cat);
+}
+
+function renderDevices(devs, filter){
+  const g = $("dev-grid");
+  const list = filter==="ALL" ? devs : devs.filter(d=>d.category===filter);
+  if(!list.length){ g.innerHTML='<p class="empty">No devices in this category.</p>'; return; }
+  g.innerHTML = list.map(d=>{
+    const cls = d.status==="MISSING"||d.status==="BLOCKED" ? "dev iss" : d.status==="SUBOPTIMAL" ? "dev wrn" : "dev";
+    const drv = d.driver || (d.modules&&d.modules.length ? d.modules[0]+"<span style='color:var(--amber)'> not loaded</span>" : "<span style='color:var(--red)'>no driver</span>");
+    const tags = [`<span class="tag">${d.category}</span>`];
+    if(d.firmware_update_available) tags.push(`<span class="tag fw">fw update</span>`);
+    if(d.blocked) tags.push(`<span class="tag blk">${(d.block_type||"").toUpperCase()} BLOCKED</span>`);
+    const nm = d.name.length>54 ? d.name.slice(0,52)+"…" : d.name;
+    return `<div class="${cls}">
+      <div class="dev-top"><span class="dev-name">${esc(nm)}</span><span class="spill s-${d.status}">${d.status}</span></div>
+      <div class="dev-drv">${drv}</div>
+      <div class="dev-tags">${tags.join("")}</div>
+    </div>`;
+  }).join("");
+}
+
+// ── Recommendations ────────────────────────────────────────────────────────
+function renderRecs(recs){
+  const el = $("rec-list");
+  if (!el) return;
+  if(!recs.length){ el.innerHTML='<p class="empty">No issues — all hardware working correctly.</p>'; return; }
+  el.innerHTML = recs.map((r,ri)=>{
+    const steps = (r.fix_steps||[]).map((s,si)=>`
+      <div class="step">
+        <div class="step-d">${esc(s.description)}</div>
+        ${s.cmd?`
+          <div class="cmd-row">
+            <span class="cmd">${esc(s.cmd)}</span>
+            <button class="cpbtn" data-cmd=${JSON.stringify(s.cmd)} onclick="cp(this)">
+              copy
+            </button>
+          </div>
+        `:""}
+      </div>`).join("");
+    const foot = [];
+    if(r.reboot_required) foot.push(`<span class="reboot-tag">Reboot required</span>`);
+    if(r.docs_url) foot.push(`<a class="docs-lnk" href="${esc(r.docs_url)}" target="_blank">Docs →</a>`);
+    return `<div class="rec ${r.severity==="HIGH"?"sH":r.severity==="MEDIUM"?"sM":"sL"}">
+      <div class="rec-top"><span class="rec-title">${esc(r.device.name)}</span><span class="sevb ${r.severity[0]}">${r.severity}</span></div>
+      <div class="rec-issue">${esc(r.issue)}</div>
+      <div class="steps">${steps}</div>
+      ${foot.length?`<div class="rec-foot">${foot.join("")}</div>`:""}
+    </div>`;
+  }).join("");
+}
+
+function cp(btn){
+  const cmd = btn.dataset.cmd;
+  if (!cmd) return;
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(cmd)
+      .then(()=>success(btn))
+      .catch(()=>fallback(btn, cmd));
+  } else {
+    fallback(btn, cmd);
+  }
+}
+
+function fallback(btn, cmd) {
+  const ta = document.createElement("textarea");
+  ta.value = cmd;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+
+  try {
+    document.execCommand("copy");
+    success(btn);
+  } catch {
+    btn.textContent = "failed";
+  }
+
+  document.body.removeChild(ta);
+}
+
+function success(btn) {
+  btn.textContent = "copied";
+  btn.classList.add("ok");
+
+  setTimeout(() => {
+    btn.textContent = "copy";
+    btn.classList.remove("ok");
+  }, 1800);
+}
+
+// ── Live Monitor ───────────────────────────────────────────────────────────
+function startMonitor(){
+  if(monitorTimer) clearInterval(monitorTimer);
+  const interval = (cfg.refresh_interval_s || 10) * 1000;
+  if(interval === 0) return;
+  pollMonitor();
+  monitorTimer = setInterval(pollMonitor, interval);
+  $("live-dot").style.display = "";
+}
+
+async function pollMonitor(){
+  try {
+    const d = await fetch("/api/monitor").then(r=>r.json());
+    if(d.error) return;
+    renderMonitor(d);
+    renderNetwork(d.network || []);
+    renderKernel(d);
+    checkAlerts(d);
+  } catch(e){}
+}
+
+function renderMonitor(d){
+  const cpu = d.cpu || {};
+  const ram = d.ram || {};
+  const sensors = d.sensors || [];
+  const thermals = d.thermals || [];
+  const diskio = d.disk_io || [];
+  const cpuPct = cpu.total_pct || 0;
+  const ramPct = ram.used_pct || 0;
+
+  // History
+  cpuHistory.push(cpuPct); if(cpuHistory.length > MAX_HIST) cpuHistory.shift();
+  ramHistory.push(ramPct); if(ramHistory.length > MAX_HIST) ramHistory.shift();
+
+  // Per-core bars
+  const cores = (cpu.per_core || []).map((p,i)=>`
+    <div class="core-item">
+      <span style="min-width:46px">Core ${i}</span>
+      <div class="core-bar"><div class="core-bar-fill" style="width:${p}%;background:var(--${clr(p,60,85)})"></div></div>
+      <span style="min-width:34px;text-align:right">${p.toFixed(0)}%</span>
+    </div>`).join("");
+
+  // Temps
+  const allTemps = [
+    ...sensors.filter(s=>s.temp_c!=null).map(s=>({label:s.label||s.chip, temp:s.temp_c})),
+    ...thermals.filter(t=>t.temp_c>0&&t.temp_c<150).map(t=>({label:t.type, temp:t.temp_c})),
+  ];
+  const uniqueTemps = [];
+  const seen = new Set();
+  for(const t of allTemps){ if(!seen.has(t.label)){seen.add(t.label);uniqueTemps.push(t);} }
+  const tempHtml = uniqueTemps.slice(0,8).map(t=>`
+    <div class="temp-item">
+      <div style="color:var(--text2)">${esc(t.label)}</div>
+      <div class="temp-val ${tempColor(t.temp)}">${t.temp.toFixed(1)}°${cfg.temp_unit==="F"?((t.temp*9/5+32).toFixed(1)+"°F"):"C"}</div>
+    </div>`).join("") || `<p style="font-size:12px;color:var(--text3)">No sensor data. Install lm-sensors:<br><code>sudo apt install lm-sensors && sudo sensors-detect</code></p>`;
+
+  // Fans
+  const fans = sensors.filter(s=>s.fan_rpm!=null&&s.fan_rpm>0);
+  const fanHtml = fans.map(f=>`
+    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">
+      <span style="color:var(--text2)">${esc(f.label||f.chip)}</span>
+      <span style="font-weight:500">${f.fan_rpm} RPM</span>
+    </div>`).join("") || `<p style="font-size:12px;color:var(--text3)">No fan data available.</p>`;
+
+  // Disk I/O
+  const dioHtml = diskio.map(d=>`
+    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">
+      <span style="color:var(--text2)">/dev/${esc(d.dev)}</span>
+      <span>↓${fmt_speed(d.read_kbps)} ↑${fmt_speed(d.write_kbps)}</span>
+    </div>`).join("") || `<p style="font-size:12px;color:var(--text3)">No disk I/O data.</p>`;
+
+  $("monitor-grid").innerHTML = `
+    <div class="mcard">
+      <div class="mcard-title">CPU usage</div>
+      <div class="big-metric ${clr(cpuPct,60,85)}">${cpuPct.toFixed(1)}%</div>
+      <div class="bar-bg"><div class="bar-fill ${clr(cpuPct,60,85)}" style="width:${cpuPct}%"></div></div>
+      <canvas class="sparkline" id="cpu-spark"></canvas>
+      <div class="core-row" style="margin-top:8px">${cores}</div>
+    </div>
+    <div class="mcard">
+      <div class="mcard-title">Memory (RAM)</div>
+      <div class="big-metric ${clr(ramPct,70,90)}">${ramPct.toFixed(1)}%</div>
+      <div class="bar-bg"><div class="bar-fill ${clr(ramPct,70,90)}" style="width:${ramPct}%"></div></div>
+      <canvas class="sparkline" id="ram-spark"></canvas>
+      <div style="font-size:12px;color:var(--text2);margin-top:6px">
+        ${ram.used_mb?Math.round(ram.used_mb/1024)+"":"—"} GB used of ${ram.total_mb?Math.round(ram.total_mb/1024):"—"} GB
+        &nbsp;·&nbsp; Swap: ${ram.swap_used_mb||0} / ${ram.swap_total_mb||0} MB
+      </div>
+    </div>
+    <div class="mcard">
+      <div class="mcard-title">Temperatures</div>
+      <div class="temp-grid">${tempHtml}</div>
+    </div>
+    <div class="mcard">
+      <div class="mcard-title">Fan speeds</div>
+      ${fanHtml}
+    </div>
+    <div class="mcard">
+      <div class="mcard-title">Disk I/O</div>
+      ${dioHtml}
+    </div>
+  `;
+
+  drawSparkline("cpu-spark", cpuHistory, "#1D9E75");
+  drawSparkline("ram-spark", ramHistory, "#BA7517");
+}
+
+function drawSparkline(canvasId, data, color){
+  const c = $(canvasId);
+  if(!c || data.length < 2) return;
+  const ctx = c.getContext("2d");
+  c.width = c.offsetWidth * devicePixelRatio;
+  c.height = c.offsetHeight * devicePixelRatio;
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  const W = c.offsetWidth, H = c.offsetHeight;
+  const max = 100, min = 0;
+  ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.lineJoin = "round";
+  ctx.beginPath();
+  data.forEach((v,i)=>{
+    const x = (i / (MAX_HIST-1)) * W;
+    const y = H - ((v - min)/(max - min)) * H;
+    i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+}
+
+// ── Network panel ──────────────────────────────────────────────────────────
+function renderNetwork(nets){
+  const el = $("net-panel");
+  if(!nets.length){ el.innerHTML='<p class="empty">No network interfaces detected.</p>'; return; }
+  el.innerHTML = nets.map(n=>`
+    <div class="net-card">
+      <div class="net-card-top">
+        <span class="iface-name">${esc(n.iface)}</span>
+        <span class="iface-badge iface-${n.state}">${n.state}</span>
+      </div>
+      <div class="iface-attrs">
+        <div class="iface-attr"><div>IP address</div><div class="iface-attr-val">${esc(n.ip||"—")}</div></div>
+        <div class="iface-attr"><div>Download</div><div class="iface-attr-val ${n.rx_kbps>0?"g":""}">${fmt_speed(n.rx_kbps)}</div></div>
+        <div class="iface-attr"><div>Upload</div><div class="iface-attr-val ${n.tx_kbps>0?"":""}"> ${fmt_speed(n.tx_kbps)}</div></div>
+        <div class="iface-attr"><div>Total RX</div><div class="iface-attr-val">${fmt_bytes(n.rx_bytes)}</div></div>
+      </div>
+    </div>`).join("");
+}
+
+// ── Disk / SMART ───────────────────────────────────────────────────────────
+async function loadSmart(){
+  try {
+    const d = await fetch("/api/smart").then(r=>r.json());
+    renderSmart(d.disks || []);
+  } catch(e){}
+}
+
+function renderSmart(disks){
+  const el = $("smart-list");
+  if(!disks.length){ el.innerHTML='<p class="empty">No drives detected or smartctl not available.</p>'; return; }
+  el.innerHTML = disks.map(d=>{
+    const cls = d.severity==="HIGH" ? "smart-card fail" : d.severity==="MEDIUM" ? "smart-card warn" : "smart-card ok";
+    const attrs = [
+      d.temp_c!=null ? `<div class="smart-attr"><div>Temperature</div><div class="smart-attr-val ${tempColor(d.temp_c)}">${d.temp_c}°C</div></div>` : "",
+      d.power_on_hours!=null ? `<div class="smart-attr"><div>Power-on hours</div><div class="smart-attr-val">${d.power_on_hours.toLocaleString()} h</div></div>` : "",
+      d.ssd_life_pct!=null ? `<div class="smart-attr"><div>SSD life left</div><div class="smart-attr-val ${clr(100-d.ssd_life_pct,50,80)}">${d.ssd_life_pct}%</div></div>` : "",
+      d.capacity_bytes!=null ? `<div class="smart-attr"><div>Capacity</div><div class="smart-attr-val">${fmt_bytes(d.capacity_bytes)}</div></div>` : "",
+      d.reallocated_sectors!=null ? `<div class="smart-attr"><div>Reallocated sectors</div><div class="smart-attr-val ${d.reallocated_sectors>0?"r":""}">${d.reallocated_sectors}</div></div>` : "",
+      d.pending_sectors!=null ? `<div class="smart-attr"><div>Pending sectors</div><div class="smart-attr-val ${d.pending_sectors>0?"r":""}">${d.pending_sectors}</div></div>` : "",
+    ].filter(Boolean).join("");
+    const issues = (d.issues||[]).map(i=>`<div class="smart-issue">${esc(i)}</div>`).join("");
+    return `<div class="${cls}">
+      <div class="smart-top">
+        <div>
+          <div class="smart-model">/dev/${esc(d.device)} — ${esc(d.model)}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px">${esc(d.type.toUpperCase())} · ${esc(d.firmware||"—")}</div>
+        </div>
+        <span class="smart-badge ${d.overall}">${d.overall}</span>
+      </div>
+      ${attrs?`<div class="smart-attrs">${attrs}</div>`:""}
+      ${issues?`<div class="smart-issues">${issues}</div>`:""}
+    </div>`;
+  }).join("");
+}
+
+// ── Kernel & Boot ──────────────────────────────────────────────────────────
+function renderKernel(d){
+  const sys = d.system || {};
+  const load = sys.load_avg || [0,0,0];
+  $("kernel-content").innerHTML = `
+    <div class="kinfo-grid" style="margin-bottom:1.25rem">
+      ${[
+        ["Kernel",     sys.kernel||"—"],
+        ["Hostname",   sys.hostname||"—"],
+        ["Uptime",     sys.uptime_str||"—"],
+        ["Boot time",  sys.boot_time||"—"],
+        ["Load avg 1m", load[0].toFixed(2)],
+        ["Load avg 5m", load[1].toFixed(2)],
+        ["Load avg 15m",load[2].toFixed(2)],
+        ["Processes",  sys.process_count||"—"],
+      ].map(([l,v])=>`<div class="kstat"><div class="kstat-lbl">${l}</div><div class="kstat-val">${esc(String(v))}</div></div>`).join("")}
+    </div>
+    <div class="section-lbl">Recent kernel warnings / errors</div>
+    <div class="dmesg-box">
+      <div class="dmesg-lbl">dmesg (err + warn)</div>
+      ${(d.dmesg_errors&&d.dmesg_errors.length)
+        ? d.dmesg_errors.map(l=>`<div class="dmesg-line">${esc(l)}</div>`).join("")
+        : `<div class="dmesg-ok">No recent errors.</div>`}
+    </div>`;
+}
+
+// ── System Info ────────────────────────────────────────────────────────────
+function renderSysInfo(d){
+  const dist  = d.distro  || {};
+  const bios  = d.bios    || {};
+  const bat   = d.battery || {};
+  const warns = d.warnings|| [];
+
+  let batHtml = "";
+  if(bat.name){
+    const h = bat.health_pct;
+    const hCol = h==null ? "" : h>=80?"g":h>=60?"a":"r";
+    batHtml = `<div class="bat-card">
+      <div class="bat-lbl">${esc(bat.name)} · ${esc(bat.status||"—")}</div>
+      <div class="bat-val">${bat.capacity_pct!=null?bat.capacity_pct+"% charge":"—"}</div>
+      ${h!=null?`<div class="bat-lbl">Health</div>
+        <div class="bat-val" style="color:var(--${hCol})">${h.toFixed(1)}%</div>
+        <div class="bar-bg"><div class="bar-fill ${hCol}" style="width:${h}%"></div></div>`:""}
+    </div>`;
+  }
+
+  const warnHtml = warns.length ? `<div class="sys-section">
+    <div class="sys-lbl">Missing tools</div>
+    ${warns.map(w=>`<div style="font-size:12px;color:var(--amber-t);margin-bottom:4px">· ${esc(w)}</div>`).join("")}
+  </div>` : "";
+
+  $("sys-content").innerHTML = `
+    ${warnHtml}
+    <div class="sys-section">
+      <div class="sys-lbl">BIOS / UEFI</div>
+      <div class="kinfo-grid">
+        ${[["Version",bios.version||"—"],["Date",bios.date||"—"]].map(([l,v])=>`
+          <div class="kstat"><div class="kstat-lbl">${l}</div><div class="kstat-val">${esc(v)}</div></div>`).join("")}
+      </div>
+    </div>
+    <div class="sys-section">
+      <div class="sys-lbl">Battery</div>
+      ${batHtml || '<p style="font-size:13px;color:var(--text3)">No battery detected.</p>'}
+    </div>
+    <div class="sys-section">
+      <div class="sys-lbl">Distribution</div>
+      <div class="kinfo-grid">
+        ${[["ID",dist.id||"—"],["Version",dist.version||"—"],["Codename",dist.codename||"—"],
+           ["Package manager",dist.pkg_manager||"—"],["Support tier",dist.tier||"—"]].map(([l,v])=>`
+          <div class="kstat"><div class="kstat-lbl">${l}</div><div class="kstat-val">${esc(v)}</div></div>`).join("")}
+      </div>
+    </div>`;
+}
+
+// ── Alerts ─────────────────────────────────────────────────────────────────
+function checkAlerts(d){
+  const temps = (d.sensors||[]).filter(s=>s.temp_c!=null).map(s=>s.temp_c);
+  const maxTemp = temps.length ? Math.max(...temps) : 0;
+  const ramPct = (d.ram||{}).used_pct || 0;
+  const msgs = [];
+  const thr = cfg.alert_cpu_temp_c || 85;
+  const rhr = cfg.alert_ram_pct    || 90;
+  if(maxTemp >= thr) msgs.push(`CPU temp ${maxTemp}°C exceeds threshold (${thr}°C)`);
+  if(ramPct  >= rhr) msgs.push(`RAM usage ${ramPct.toFixed(0)}% exceeds threshold (${rhr}%)`);
+  const bar = $("alert-bar");
+  if(msgs.length){ bar.textContent = msgs.join("  ·  "); bar.style.display = ""; }
+}
+
+// ── Settings ───────────────────────────────────────────────────────────────
+function renderSettings(c){
+  $("settings-form").innerHTML = `
+    <div class="settings-group">
+      <div class="settings-group-title">Launch</div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <div class="settings-row-label">Default mode</div>
+          <div class="settings-row-desc">Which mode opens when you run hardware-compat</div>
+        </div>
+        <div class="settings-control">
+          <select id="s-default_mode">
+            <option value="gui" ${c.default_mode==="gui"?"selected":""}>GUI (web dashboard)</option>
+            <option value="cli" ${c.default_mode==="cli"?"selected":""}>CLI (terminal report)</option>
+          </select>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <div class="settings-row-label">GUI port</div>
+          <div class="settings-row-desc">Local port for the web dashboard</div>
+        </div>
+        <div class="settings-control">
+          <input type="number" id="s-gui_port" value="${c.gui_port||7474}" min="1024" max="65535" style="width:90px">
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <div class="settings-row-label">Auto-open browser</div>
+          <div class="settings-row-desc">Open a tab automatically when the GUI starts</div>
+        </div>
+        <div class="settings-control">
+          <label class="toggle"><input type="checkbox" id="s-auto_open_browser" ${c.auto_open_browser?"checked":""}><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <div class="settings-group-title">Live monitor</div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <div class="settings-row-label">Refresh interval</div>
+          <div class="settings-row-desc">How often live metrics update (0 = off)</div>
+        </div>
+        <div class="settings-control">
+          <select id="s-refresh_interval_s">
+            <option value="0"  ${c.refresh_interval_s===0?"selected":""}>Off</option>
+            <option value="5"  ${c.refresh_interval_s===5?"selected":""}>5 seconds</option>
+            <option value="10" ${c.refresh_interval_s===10?"selected":""}>10 seconds</option>
+            <option value="30" ${c.refresh_interval_s===30?"selected":""}>30 seconds</option>
+            <option value="60" ${c.refresh_interval_s===60?"selected":""}>1 minute</option>
+          </select>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <div class="settings-row-label">Temperature unit</div>
+          <div class="settings-row-desc">Display temperatures in Celsius or Fahrenheit</div>
+        </div>
+        <div class="settings-control">
+          <select id="s-temp_unit">
+            <option value="C" ${c.temp_unit==="C"?"selected":""}>°C Celsius</option>
+            <option value="F" ${c.temp_unit==="F"?"selected":""}>°F Fahrenheit</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <div class="settings-group-title">Alert thresholds</div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <div class="settings-row-label">CPU temperature alert</div>
+          <div class="settings-row-desc">Show alert banner if any sensor exceeds this (°C)</div>
+        </div>
+        <div class="settings-control">
+          <input type="number" id="s-alert_cpu_temp_c" value="${c.alert_cpu_temp_c||85}" min="40" max="110" style="width:75px">
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <div class="settings-row-label">RAM usage alert</div>
+          <div class="settings-row-desc">Show alert banner if RAM usage exceeds this (%)</div>
+        </div>
+        <div class="settings-control">
+          <input type="number" id="s-alert_ram_pct" value="${c.alert_ram_pct||90}" min="50" max="99" style="width:75px">
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <div class="settings-row-label">Disk temperature alert</div>
+          <div class="settings-row-desc">Highlight disk if temperature exceeds this (°C)</div>
+        </div>
+        <div class="settings-control">
+          <input type="number" id="s-alert_disk_temp_c" value="${c.alert_disk_temp_c||55}" min="30" max="70" style="width:75px">
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <div class="settings-group-title">Display</div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <div class="settings-row-label">Severity filter</div>
+          <div class="settings-row-desc">Which recommendations to show</div>
+        </div>
+        <div class="settings-control">
+          <select id="s-severity_filter">
+            <option value="ALL"    ${c.severity_filter==="ALL"?"selected":""}>All</option>
+            <option value="MEDIUM" ${c.severity_filter==="MEDIUM"?"selected":""}>Medium & High</option>
+            <option value="HIGH"   ${c.severity_filter==="HIGH"?"selected":""}>High only</option>
+          </select>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <div class="settings-row-label">CLI auto-apply fixes</div>
+          <div class="settings-row-desc">Skip the y/n prompt in CLI mode and apply fixes automatically</div>
+        </div>
+        <div class="settings-control">
+          <label class="toggle"><input type="checkbox" id="s-cli_auto_apply" ${c.cli_auto_apply?"checked":""}><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <div class="settings-row-label">Server Control</div>
+          <div class="settings-row-desc">
+            Stop the local server when you’re done using the app
+          </div>
+        </div>
+        <div class="settings-control">
+          <button onclick="shutdownServer()" class="btn-danger">
+            Stop Server
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function saveSettings(){
+  const get = id => $(id).value;
+  const chk = id => $(id) && $(id).checked;
+  const newCfg = {
+    ...cfg,
+    default_mode:        get("s-default_mode"),
+    gui_port:            parseInt(get("s-gui_port")),
+    auto_open_browser:   chk("s-auto_open_browser"),
+    refresh_interval_s:  parseInt(get("s-refresh_interval_s")),
+    temp_unit:           get("s-temp_unit"),
+    alert_cpu_temp_c:    parseInt(get("s-alert_cpu_temp_c")),
+    alert_ram_pct:       parseInt(get("s-alert_ram_pct")),
+    alert_disk_temp_c:   parseInt(get("s-alert_disk_temp_c")),
+    severity_filter:     get("s-severity_filter"),
+    cli_auto_apply:      chk("s-cli_auto_apply"),
+  };
+  try {
+    const res = await fetch("/api/config",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(newCfg)}).then(r=>r.json());
+    cfg = newCfg;
+    const c = $("save-confirm");
+    c.style.display = "block";
+    setTimeout(()=>c.style.display="none", 2500);
+    // Restart monitor with new interval
+    startMonitor();
+  } catch(e){ alert("Failed to save settings: " + e.message); }
+}
+
+// ── Tab switch ─────────────────────────────────────────────────────────────
+function tab(name, el){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  el.classList.add("active");
+  $("tab-"+name).classList.add("active");
+}
+
+// ── Heartbeat: tells server the browser is still open ────────────────────────
+// Sends a ping every 15s. Server shuts down if no ping received for 30s.
+(function startHeartbeat() {
+    setInterval(() => {
+        fetch('/api/ping').catch(() => {});
+    }, 15000);
+})();
+
+
+// ── Copy-to-clipboard for command snippets ───────────────────────────────────
+// Fixes the broken copy button. Works without clipboard API permissions.
+function copyCmd(btn) {
+    // Find the nearest <code> or element with data-cmd
+    const target = btn.closest('[data-cmd]') || btn.previousElementSibling;
+    const text   = btn.dataset.cmd || (target && target.textContent.trim());
+    if (!text) return;
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => flashCopied(btn));
+    } else {
+        // Fallback for http:// (localhost doesn't always count as secure)
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity  = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        flashCopied(btn);
+    }
+}
+
+function flashCopied(btn) {
+    const original = btn.textContent;
+    btn.textContent = '✓ Copied';
+    btn.disabled = true;
+    setTimeout(() => {
+        btn.textContent = original;
+        btn.disabled = false;
+    }, 1500);
+}
+
+
+// ── Shutdown button (for settings page) ──────────────────────────────────────
+function shutdownServer() {
+    if (!confirm('Stop the hardware-compat server?')) return;
+    fetch('/api/shutdown')
+        .then(() => {
+            document.body.innerHTML =
+                '<div style="padding:2rem;font-family:monospace">' +
+                '<h2>Server stopped.</h2>' +
+                '<p>You can close this tab.</p>' +
+                '<p>To restart: run <code>hardware-compat</code> from your app launcher or terminal.</p>' +
+                '</div>';
+        })
+        .catch(() => {});
+}
+</script>
+</body>
+</html>
