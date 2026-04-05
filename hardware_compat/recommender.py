@@ -1467,16 +1467,22 @@ def build_recommendations(devices: list,
                        f"Check if a newer version is available."),
             "severity": "LOW",
             "fix_steps": [
-                {"description": "Check for BIOS/firmware updates via fwupd",
-                 "cmd": "sudo fwupdmgr refresh && sudo fwupdmgr get-updates"},
-                {"description": "Apply any available firmware updates",
-                 "cmd": "sudo fwupdmgr update"},
-                {"description": "Also check your laptop manufacturer's support page",
-                 "cmd": f"echo 'BIOS: {bios.get(\"vendor\", \"\")} {bios.get(\"version\", \"\")} ({bios.get(\"date\", \"\")})'"},
-            ],
-            "reboot_required": True,
-            "docs_url": "https://fwupd.org",
-        })
+            {
+                "description": "Check for BIOS/firmware updates via fwupd",
+                "cmd": "sudo fwupdmgr refresh && sudo fwupdmgr get-updates"
+            },
+            {
+                "description": "Apply any available firmware updates",
+                "cmd": "sudo fwupdmgr update"
+            },
+            {
+                "description": "Also check your laptop manufacturer's support page",
+                "cmd": f'echo "BIOS: {bios.get("vendor", "")} {bios.get("version", "")} ({bios.get("date", "")})"'
+            }
+        ],
+        "reboot_required": True,
+        "docs_url": "https://fwupd.org"
+    })
 
     # ── Sort by severity ──────────────────────────────────────────────────
     severity_order = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
